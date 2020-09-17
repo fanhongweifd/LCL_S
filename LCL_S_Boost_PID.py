@@ -207,8 +207,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
         result['XBox'][j] = XBox
         # print('k={}, j={}, sum(Xbox)={}'.format(k, j, sum(sum(XBox))))
     result['k'] = k
-    with open(resume_path, 'wb') as f:
-        pickle.dump(result, f)
+    if resume_path:
+        with open(resume_path, 'wb') as f:
+            pickle.dump(result, f)
 
     if output_json_path:
         XBox = result['XBox']
@@ -226,7 +227,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             result_json[i]['Iout'] = XBox_i[8, :].tolist()
             result_json[i]['Vout'] = XBox_i[9, :].tolist()
 
-        with open(param['json_file_path'], 'w') as file_obj:
+        with open(output_json_path, 'w') as file_obj:
             json.dump(result_json, file_obj, indent=4)
 
     return result
