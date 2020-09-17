@@ -8,18 +8,21 @@ Other : 1. The variables in the display are all in Parameter
            value at the end of last loop.
 '''
 import os
+import json
 import pickle
 import numpy as np
 from tqdm import tqdm
 from json import loads, dumps
+from collections import defaultdict
 from sys import argv, stdout, stderr
 from PID_Function import PID_Function
 from Boost_Function import Boost_Function
 from LCCL_S_Function import LCCL_S_Function
 
 
+
 def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp,
-                Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='Xbox_k.pkl', output_dir=''):
+                Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='', output_dir='', output_json_path=''):
     '''
     :param Freq:            系统频率（Hz）
     :param Us:              直流电压(V)
@@ -47,6 +50,14 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     :param N_fresh:         互感和负载更新频率
 
     :return:
+    返回的结构是:
+    {
+        'XBox':{
+            0: ...
+            1: ...
+        }
+        'k': 10000
+    }
     '''
 
     # ------------------------------------------------------------------------
@@ -62,10 +73,11 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     TimeGap = 1 / Freq / Sample
 
     # 是否加载上次一循环的参数XBox 和 K
+
     if resume and os.path.exists(resume_path):
         with open(resume_path, 'rb') as f:
             param = pickle.load(f)
-            XBox = param['XBox']
+            XBox = param['XBox'][max(param['XBox'])]
             k = param['k']
     else:
         XBox = np.zeros([10, int(Inner_Time / TimeGap)])
@@ -76,6 +88,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     stdout_num = 100
     count_point = np.arange(0, Loop * int(Inner_Time / TimeGap), Loop * int(Inner_Time / TimeGap) / stdout_num).astype('int')
     count_percent = {value: idx/stdout_num for idx, value in enumerate(count_point)}
+    result = defaultdict(dict)
 
     for j in range(Loop):
         # 初始化参数
@@ -191,13 +204,32 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     data_row = eval(feature)
                     f.write('\t'.join(data_row.astype('str').tolist()))
 
+        result['XBox'][j] = XBox
         # print('k={}, j={}, sum(Xbox)={}'.format(k, j, sum(sum(XBox))))
-
+    result['k'] = k
     with open(resume_path, 'wb') as f:
-        Xbox_k = {'XBox': XBox, 'k': k}
-        pickle.dump(Xbox_k, f)
+        pickle.dump(result, f)
 
-    return Xbox_k
+    if output_json_path:
+        XBox = result['XBox']
+        result_json = defaultdict(dict)
+        for i in XBox.keys():
+            XBox_i = XBox[i]
+            result_json[i]['IP'] = XBox_i[0, :].tolist()
+            result_json[i]['IT'] = XBox_i[1, :].tolist()
+            result_json[i]['IS'] = XBox_i[2, :].tolist()
+            result_json[i]['UCP'] = XBox_i[3, :].tolist()
+            result_json[i]['UCT'] = XBox_i[4, :].tolist()
+            result_json[i]['UCS'] = XBox_i[5, :].tolist()
+            result_json[i]['Ur'] = XBox_i[6, :].tolist()
+            result_json[i]['Uinv'] = XBox_i[7, :].tolist()
+            result_json[i]['Iout'] = XBox_i[8, :].tolist()
+            result_json[i]['Vout'] = XBox_i[9, :].tolist()
+
+        with open(param['json_file_path'], 'w') as file_obj:
+            json.dump(result_json, file_obj, indent=4)
+
+    return result
 
 
 if __name__ == '__main__':
