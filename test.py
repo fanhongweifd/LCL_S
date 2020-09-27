@@ -15,7 +15,6 @@ if __name__ == '__main__':
     param = loads(argv[1])
     param['R_Index'] = np.array(open(param['R_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
     param['M_Index'] = np.array(open(param['R_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
-    #
 
     stdout.write(dumps({
         'type': 'program start'

@@ -89,7 +89,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     count_point = np.arange(0, Loop * int(Inner_Time / TimeGap), Loop * int(Inner_Time / TimeGap) / stdout_num).astype('int')
     count_percent = {value: idx/stdout_num for idx, value in enumerate(count_point)}
     result = defaultdict(dict)
-
+    temp_result = defaultdict(dict)
     for j in range(Loop):
         # 初始化参数
         t = np.arange(Inner_Time * j, Inner_Time * (j+1), TimeGap)
@@ -181,10 +181,31 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             # 输出进度
             count = j * int(Inner_Time / TimeGap) + i
             if count in count_percent:
+                temp_result[j]['IP'] = XBox[0, :i].tolist()
+                temp_result[j]['IT'] = XBox[1, :i].tolist()
+                temp_result[j]['IS'] = XBox[2, :i].tolist()
+                temp_result[j]['UCP'] = XBox[3, :i].tolist()
+                temp_result[j]['UCT'] = XBox[4, :i].tolist()
+                temp_result[j]['UCS'] = XBox[5, :i].tolist()
+                temp_result[j]['Ur'] = XBox[6, :i].tolist()
+                temp_result[j]['Uinv'] = XBox[7, :i].tolist()
+                temp_result[j]['Iout'] = XBox[8, :i].tolist()
+                temp_result[j]['Vout'] = XBox[9, :i].tolist()
+
                 stdout.write(dumps({
                     'type': 'process',
                     'value': count_percent[count],
+                    'result': temp_result
                 }))
+
+                # {
+                #     'XBox': {
+                #         0: ...
+                #         1: ...
+                #     }
+                #     'k': 10000
+                # }
+
                 stdout.flush()
 
         IP = XBox[0, :]
