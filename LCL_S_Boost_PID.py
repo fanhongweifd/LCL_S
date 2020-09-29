@@ -71,6 +71,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     N_boost = Freq / fb
     N_PID = Freq / fp
     TimeGap = 1 / Freq / Sample
+    LT      = LP*alpha
+    CP      = 1/w/w/LT
 
     # 是否加载上次一循环的参数XBox 和 K
 
@@ -191,6 +193,10 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 temp_result[j]['Uinv'] = XBox[7, :i].tolist()
                 temp_result[j]['Iout'] = XBox[8, :i].tolist()
                 temp_result[j]['Vout'] = XBox[9, :i].tolist()
+                temp_result[j]['Vlp'] = (XBox[1, :i] * w * LP).tolist()
+                temp_result[j]['ICP'] = (XBox[3, :i] * w * CP).tolist()
+                temp_result[j]['VLT'] = (XBox[0, :i] * w * LT).tolist()
+                temp_result[j]['VLR'] = (XBox[2, :i] * w * LS).tolist()
 
                 stdout.write(dumps({
                     'type': 'process',
