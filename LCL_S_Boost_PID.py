@@ -180,13 +180,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     D = PID_Function(PID_Param, j * Inner_Time / TimeGap + i, Err_in, Inb)
                     PID_Param[4] = D
 
-            if output_dir:
-                for feature in ['IP', 'IT', 'IS', 'UCP', 'UCT', 'UCS', 'Ur', 'Uinv', 'Iout', 'Vout']:
-                    with open(feature + str(j) + '.txt', 'w') as f:
-                        data_row = eval(feature)
-                        f.write('\t'.join(data_row.astype('str').tolist()))
 
-            result['XBox'][j] = XBox.copy()
 
             # 输出进度
             count = j * int(Inner_Time / TimeGap) + i
@@ -196,20 +190,20 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     last_j = j - 1
                     last_i = int(i + int(Inner_Time / TimeGap) - Loop * int(Inner_Time / TimeGap)/ stdout_num)
                     if i != 0:
-                        temp_result[j]['IP'] = result['XBox'][j][0, :i].tolist()
-                        temp_result[j]['IT'] = result['XBox'][j][1, :i].tolist()
-                        temp_result[j]['IS'] = result['XBox'][j][2, :i].tolist()
-                        temp_result[j]['UCP'] = result['XBox'][j][3, :i].tolist()
-                        temp_result[j]['UCT'] = result['XBox'][j][4, :i].tolist()
-                        temp_result[j]['UCS'] = result['XBox'][j][5, :i].tolist()
-                        temp_result[j]['Ur'] = result['XBox'][j][6, :i].tolist()
-                        temp_result[j]['Uinv'] = result['XBox'][j][7, :i].tolist()
-                        temp_result[j]['Iout'] = result['XBox'][j][8, :i].tolist()
-                        temp_result[j]['Vout'] = result['XBox'][j][9, :i].tolist()
-                        temp_result[j]['Vlp'] = (result['XBox'][j][1, :i] * w * LP).tolist()
-                        temp_result[j]['ICP'] = (result['XBox'][j][3, :i] * w * CP).tolist()
-                        temp_result[j]['VLT'] = (result['XBox'][j][0, :i] * w * LT).tolist()
-                        temp_result[j]['VLR'] = (result['XBox'][j][2, :i] * w * LS).tolist()
+                        temp_result[j]['IP'] = XBox[0, :i].tolist()
+                        temp_result[j]['IT'] = XBox[1, :i].tolist()
+                        temp_result[j]['IS'] = XBox[2, :i].tolist()
+                        temp_result[j]['UCP'] = XBox[3, :i].tolist()
+                        temp_result[j]['UCT'] = XBox[4, :i].tolist()
+                        temp_result[j]['UCS'] = XBox[5, :i].tolist()
+                        temp_result[j]['Ur'] = XBox[6, :i].tolist()
+                        temp_result[j]['Uinv'] = XBox[7, :i].tolist()
+                        temp_result[j]['Iout'] = XBox[8, :i].tolist()
+                        temp_result[j]['Vout'] = XBox[9, :i].tolist()
+                        temp_result[j]['Vlp'] = (XBox[1, :i] * w * LP).tolist()
+                        temp_result[j]['ICP'] = (XBox[3, :i] * w * CP).tolist()
+                        temp_result[j]['VLT'] = (XBox[0, :i] * w * LT).tolist()
+                        temp_result[j]['VLR'] = (XBox[2, :i] * w * LS).tolist()
 
                     temp_result[last_j]['IP'] = result['XBox'][last_j][0, last_i:].tolist()
                     temp_result[last_j]['IT'] = result['XBox'][last_j][1, last_i:].tolist()
@@ -229,21 +223,20 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 else:
                     last_j = j
                     last_i = int(i - Loop * int(Inner_Time / TimeGap) / stdout_num)
-                    temp_result[j]['IP'] = result['XBox'][j][0, last_i:i].tolist()
-                    temp_result[j]['IT'] = result['XBox'][j][1, last_i:i].tolist()
-                    temp_result[j]['IS'] = result['XBox'][j][2, last_i:i].tolist()
-                    temp_result[j]['UCP'] = result['XBox'][j][3, last_i:i].tolist()
-                    temp_result[j]['UCT'] = result['XBox'][j][4, last_i:i].tolist()
-                    temp_result[j]['UCS'] = result['XBox'][j][5, last_i:i].tolist()
-                    temp_result[j]['Ur'] = result['XBox'][j][6, last_i:i].tolist()
-                    temp_result[j]['Uinv'] = result['XBox'][j][7, last_i:i].tolist()
-                    temp_result[j]['Iout'] = result['XBox'][j][8, last_i:i].tolist()
-                    temp_result[j]['Vout'] = result['XBox'][j][9, last_i:i].tolist()
-                    temp_result[j]['Vlp'] = (result['XBox'][j][1, last_i:i] * w * LP).tolist()
-                    temp_result[j]['ICP'] = (result['XBox'][j][3, last_i:i] * w * CP).tolist()
-                    temp_result[j]['VLT'] = (result['XBox'][j][0, last_i:i] * w * LT).tolist()
-                    temp_result[j]['VLR'] = (result['XBox'][j][2, last_i:i] * w * LS).tolist()
-
+                    temp_result[j]['IP'] = XBox[0, last_i:i].tolist()
+                    temp_result[j]['IT'] = XBox[1, last_i:i].tolist()
+                    temp_result[j]['IS'] = XBox[2, last_i:i].tolist()
+                    temp_result[j]['UCP'] = XBox[3, last_i:i].tolist()
+                    temp_result[j]['UCT'] = XBox[4, last_i:i].tolist()
+                    temp_result[j]['UCS'] = XBox[5, last_i:i].tolist()
+                    temp_result[j]['Ur'] = XBox[6, last_i:i].tolist()
+                    temp_result[j]['Uinv'] = XBox[7, last_i:i].tolist()
+                    temp_result[j]['Iout'] = XBox[8, last_i:i].tolist()
+                    temp_result[j]['Vout'] = XBox[9, last_i:i].tolist()
+                    temp_result[j]['Vlp'] = (XBox[1, last_i:i] * w * LP).tolist()
+                    temp_result[j]['ICP'] = (XBox[3, last_i:i] * w * CP).tolist()
+                    temp_result[j]['VLT'] = (XBox[0, last_i:i] * w * LT).tolist()
+                    temp_result[j]['VLR'] = (XBox[2, last_i:i] * w * LS).tolist()
 
                 stdout.write(dumps({
                     'type': 'process',
@@ -287,6 +280,14 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
 
                 stdout.flush()
 
+        if output_dir:
+            for feature in ['IP', 'IT', 'IS', 'UCP', 'UCT', 'UCS', 'Ur', 'Uinv', 'Iout', 'Vout']:
+                with open(feature + str(j) + '.txt', 'w') as f:
+                    data_row = eval(feature)
+                    f.write('\t'.join(data_row.astype('str').tolist()))
+
+        result['XBox'][j] = XBox.copy()
+
         IP = XBox[0, :]
         IT = XBox[1, :]
         IS = XBox[2, :]
@@ -298,8 +299,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
         Iout = XBox[8, :]
         Vout = XBox[9, :]
 
-
         # print('k={}, j={}, sum(Xbox)={}'.format(k, j, sum(sum(XBox))))
+
     result['k'] = k
     if resume_path:
         with open(resume_path, 'wb') as f:
