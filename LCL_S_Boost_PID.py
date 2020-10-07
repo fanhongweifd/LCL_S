@@ -186,7 +186,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                         data_row = eval(feature)
                         f.write('\t'.join(data_row.astype('str').tolist()))
 
-            result['XBox'][j] = XBox
+            result['XBox'][j] = XBox.copy()
 
             # 输出进度
             count = j * int(Inner_Time / TimeGap) + i
@@ -258,6 +258,32 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 #     }
                 #     'k': 10000
                 # }
+
+                stdout.flush()
+            elif (j * int(Inner_Time / TimeGap) + i) == (Loop * int(Inner_Time / TimeGap) -1):
+                temp_result = defaultdict(dict)
+                last_j = j
+                last_i = int(max(count_percent.keys()) - j * int(Inner_Time / TimeGap))
+                temp_result[j]['IP'] = result['XBox'][j][0, last_i:].tolist()
+                temp_result[j]['IT'] = result['XBox'][j][1, last_i:].tolist()
+                temp_result[j]['IS'] = result['XBox'][j][2, last_i:].tolist()
+                temp_result[j]['UCP'] = result['XBox'][j][3, last_i:].tolist()
+                temp_result[j]['UCT'] = result['XBox'][j][4, last_i:].tolist()
+                temp_result[j]['UCS'] = result['XBox'][j][5, last_i:].tolist()
+                temp_result[j]['Ur'] = result['XBox'][j][6, last_i:].tolist()
+                temp_result[j]['Uinv'] = result['XBox'][j][7, last_i:].tolist()
+                temp_result[j]['Iout'] = result['XBox'][j][8, last_i:].tolist()
+                temp_result[j]['Vout'] = result['XBox'][j][9, last_i:].tolist()
+                temp_result[j]['Vlp'] = (result['XBox'][j][1, last_i:] * w * LP).tolist()
+                temp_result[j]['ICP'] = (result['XBox'][j][3, last_i:] * w * CP).tolist()
+                temp_result[j]['VLT'] = (result['XBox'][j][0, last_i:] * w * LT).tolist()
+                temp_result[j]['VLR'] = (result['XBox'][j][2, last_i:] * w * LS).tolist()
+
+                stdout.write(dumps({
+                    'type': 'process',
+                    'value': 1,
+                    'result': temp_result
+                }))
 
                 stdout.flush()
 
