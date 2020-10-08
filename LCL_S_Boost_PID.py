@@ -21,7 +21,7 @@ from LCCL_S_Function import LCCL_S_Function
 
 
 
-def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp,
+def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt,
                 Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='', output_dir='', output_json_path=''):
     '''
     :param Freq:            系统频率（Hz）
@@ -71,8 +71,10 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     N_boost = Freq / fb
     N_PID = Freq / fp
     TimeGap = 1 / Freq / Sample
-    LT      = LP*alpha
-    CP      = 1/w/w/LT
+    # LT      = LP*alpha
+    LT = Lt
+    # CP      = 1/w/w/LT
+    CP = Cp
 
     # 是否加载上次一循环的参数XBox 和 K
 
@@ -99,7 +101,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             XBox[:, 0] = XBox[:, int(Inner_Time / TimeGap)-1]
 
         # LCL_S 参数
-        LCL_Param = [None] * 12
+        LCL_Param = [None] * 15
         LCL_Param[0] = Freq
         LCL_Param[1] = Us
         LCL_Param[2] = M
@@ -112,6 +114,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
         LCL_Param[9] = RT
         LCL_Param[10] = RS
         LCL_Param[11] = TimeGap
+        LCL_Param[12] = Cd
+        LCL_Param[13] = CP
+        LCL_Param[14] = CS
 
         # Boost 参数
         Boost_Param = [None] * 8

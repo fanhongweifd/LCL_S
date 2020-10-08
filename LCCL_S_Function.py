@@ -26,9 +26,13 @@ def LCCL_S_Function(LCL_Param,LCL_Ini,t,Index):
     # 初值计算
     w       = 2 * np.pi * Freq
     LT      = LP*alpha
-    Cp      = 1/w/w/LT
-    Cd      = 1/w/w/LP/(1-alpha)
-    Cs      = 1/w/w/LS
+
+    Cd = LCL_Param[12]
+    Cp = LCL_Param[13]
+    Cs = LCL_Param[14]
+    # Cp      = 1/w/w/LT
+    # Cd      = 1/w/w/LP/(1-alpha)
+    # Cs      = 1/w/w/LS
     X0      = LCL_Ini
 
     # ------------------------------------------------------------------------
