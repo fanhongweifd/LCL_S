@@ -8,6 +8,7 @@ Other : 1. The variables in the display are all in Parameter
            value at the end of last loop.
 '''
 import os
+import time
 import json
 import pickle
 import numpy as np
@@ -21,7 +22,7 @@ from LCCL_S_Function import LCCL_S_Function
 
 
 
-def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt,
+def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt, round_num,
                 Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='', output_dir='', output_json_path=''):
     '''
     :param Freq:            系统频率（Hz）
@@ -62,6 +63,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
 
     # ------------------------------------------------------------------------
     # 其他参数生成
+    Output_Interv = 0.02       # 输出数据的时间间隔
     T = 1 / Freq               # 系统周期
     w = 2 * np.pi * Freq       # 角速度
     Inner_Time = Period / Freq # 内循环时长
@@ -90,9 +92,14 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     # ------------------------------------------------------------------------
     # 整体循环
     stdout_num = 100
+    all_sample  = int(Loop * Inner_Time / TimeGap)
     count_point = np.arange(0, Loop * int(Inner_Time / TimeGap), Loop * int(Inner_Time / TimeGap) / stdout_num).astype('int')
     count_percent = {value: idx/stdout_num for idx, value in enumerate(count_point)}
     result = defaultdict(dict)
+
+    start_time = time.time()
+    last_i = 0
+    last_j = 0
 
     for j in range(Loop):
         # 初始化参数
@@ -185,68 +192,66 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     D = PID_Function(PID_Param, j * Inner_Time / TimeGap + i, Err_in, Inb)
                     PID_Param[4] = D
 
-
-
             # 输出进度
             count = j * int(Inner_Time / TimeGap) + i
-            if (count in count_percent) and (count != 0):
+            end_time = time.time()
+            # if (count in count_percent) and (count != 0):
+            if end_time - start_time > Output_Interv:
                 temp_result = defaultdict(dict)
-                if i < Loop * int(Inner_Time / TimeGap)/ stdout_num:
-                    last_j = j - 1
-                    last_i = int(i + int(Inner_Time / TimeGap) - Loop * int(Inner_Time / TimeGap)/ stdout_num)
+                if last_j != j:
                     if i != 0:
-                        temp_result[j]['IP'] = XBox[0, :i].tolist()
-                        temp_result[j]['IT'] = XBox[1, :i].tolist()
-                        temp_result[j]['IS'] = XBox[2, :i].tolist()
-                        temp_result[j]['UCP'] = XBox[3, :i].tolist()
-                        temp_result[j]['UCT'] = XBox[4, :i].tolist()
-                        temp_result[j]['UCS'] = XBox[5, :i].tolist()
-                        temp_result[j]['Ur'] = XBox[6, :i].tolist()
-                        temp_result[j]['Uinv'] = XBox[7, :i].tolist()
-                        temp_result[j]['Iout'] = XBox[8, :i].tolist()
-                        temp_result[j]['Vout'] = XBox[9, :i].tolist()
-                        temp_result[j]['Vlp'] = (XBox[1, :i] * w * LP).tolist()
-                        temp_result[j]['ICP'] = (XBox[3, :i] * w * CP).tolist()
-                        temp_result[j]['VLT'] = (XBox[0, :i] * w * LT).tolist()
-                        temp_result[j]['VLR'] = (XBox[2, :i] * w * LS).tolist()
 
-                    temp_result[last_j]['IP'] = result['XBox'][last_j][0, last_i:].tolist()
-                    temp_result[last_j]['IT'] = result['XBox'][last_j][1, last_i:].tolist()
-                    temp_result[last_j]['IS'] = result['XBox'][last_j][2, last_i:].tolist()
-                    temp_result[last_j]['UCP'] = result['XBox'][last_j][3, last_i:].tolist()
-                    temp_result[last_j]['UCT'] = result['XBox'][last_j][4, last_i:].tolist()
-                    temp_result[last_j]['UCS'] = result['XBox'][last_j][5, last_i:].tolist()
-                    temp_result[last_j]['Ur'] = result['XBox'][last_j][6, last_i:].tolist()
-                    temp_result[last_j]['Uinv'] = result['XBox'][last_j][7, last_i:].tolist()
-                    temp_result[last_j]['Iout'] = result['XBox'][last_j][8, last_i:].tolist()
-                    temp_result[last_j]['Vout'] = result['XBox'][last_j][9, last_i:].tolist()
-                    temp_result[last_j]['Vlp'] = (result['XBox'][last_j][1, last_i:] * w * LP).tolist()
-                    temp_result[last_j]['ICP'] = (result['XBox'][last_j][3, last_i:] * w * CP).tolist()
-                    temp_result[last_j]['VLT'] = (result['XBox'][last_j][0, last_i:] * w * LT).tolist()
-                    temp_result[last_j]['VLR'] = (result['XBox'][last_j][2, last_i:] * w * LS).tolist()
+                        temp_result[j]['IP'] = np.round(XBox[0, :i], round_num).tolist()
+                        temp_result[j]['IT'] = np.round(XBox[1, :i], round_num).tolist()
+                        temp_result[j]['IS'] = np.round(XBox[2, :i], round_num).tolist()
+                        temp_result[j]['UCP'] = np.round(XBox[3, :i], round_num).tolist()
+                        temp_result[j]['UCT'] = np.round(XBox[4, :i], round_num).tolist()
+                        temp_result[j]['UCS'] = np.round(XBox[5, :i], round_num).tolist()
+                        temp_result[j]['Ur'] = np.round(XBox[6, :i], round_num).tolist()
+                        temp_result[j]['Uinv'] = np.round(XBox[7, :i], round_num).tolist()
+                        temp_result[j]['Iout'] = np.round(XBox[8, :i], round_num).tolist()
+                        temp_result[j]['Vout'] = np.round(XBox[9, :i], round_num).tolist()
+                        temp_result[j]['Vlp'] = np.round(XBox[1, :i] * w * LP, round_num).tolist()
+                        temp_result[j]['ICP'] = np.round(XBox[3, :i] * w * CP, round_num).tolist()
+                        temp_result[j]['VLT'] = np.round(XBox[0, :i] * w * LT, round_num).tolist()
+                        temp_result[j]['VLR'] = np.round(XBox[2, :i] * w * LS, round_num).tolist()
+
+                    temp_result[last_j]['IP'] = np.round(result['XBox'][last_j][0, last_i:], round_num).tolist()
+                    temp_result[last_j]['IT'] = np.round(result['XBox'][last_j][1, last_i:], round_num).tolist()
+                    temp_result[last_j]['IS'] = np.round(result['XBox'][last_j][2, last_i:], round_num).tolist()
+                    temp_result[last_j]['UCP'] = np.round(result['XBox'][last_j][3, last_i:], round_num).tolist()
+                    temp_result[last_j]['UCT'] = np.round(result['XBox'][last_j][4, last_i:], round_num).tolist()
+                    temp_result[last_j]['UCS'] = np.round(result['XBox'][last_j][5, last_i:], round_num).tolist()
+                    temp_result[last_j]['Ur'] = np.round(result['XBox'][last_j][6, last_i:], round_num).tolist()
+                    temp_result[last_j]['Uinv'] = np.round(result['XBox'][last_j][7, last_i:], round_num).tolist()
+                    temp_result[last_j]['Iout'] = np.round(result['XBox'][last_j][8, last_i:], round_num).tolist()
+                    temp_result[last_j]['Vout'] = np.round(result['XBox'][last_j][9, last_i:], round_num).tolist()
+                    temp_result[last_j]['Vlp'] = np.round(result['XBox'][last_j][1, last_i:] * w * LP, round_num).tolist()
+                    temp_result[last_j]['ICP'] = np.round(result['XBox'][last_j][3, last_i:] * w * CP, round_num).tolist()
+                    temp_result[last_j]['VLT'] = np.round(result['XBox'][last_j][0, last_i:] * w * LT, round_num).tolist()
+                    temp_result[last_j]['VLR'] = np.round(result['XBox'][last_j][2, last_i:] * w * LS, round_num).tolist()
 
                 else:
-                    last_j = j
-                    last_i = int(i - Loop * int(Inner_Time / TimeGap) / stdout_num)
-                    temp_result[j]['IP'] = XBox[0, last_i:i].tolist()
-                    temp_result[j]['IT'] = XBox[1, last_i:i].tolist()
-                    temp_result[j]['IS'] = XBox[2, last_i:i].tolist()
-                    temp_result[j]['UCP'] = XBox[3, last_i:i].tolist()
-                    temp_result[j]['UCT'] = XBox[4, last_i:i].tolist()
-                    temp_result[j]['UCS'] = XBox[5, last_i:i].tolist()
-                    temp_result[j]['Ur'] = XBox[6, last_i:i].tolist()
-                    temp_result[j]['Uinv'] = XBox[7, last_i:i].tolist()
-                    temp_result[j]['Iout'] = XBox[8, last_i:i].tolist()
-                    temp_result[j]['Vout'] = XBox[9, last_i:i].tolist()
-                    temp_result[j]['Vlp'] = (XBox[1, last_i:i] * w * LP).tolist()
-                    temp_result[j]['ICP'] = (XBox[3, last_i:i] * w * CP).tolist()
-                    temp_result[j]['VLT'] = (XBox[0, last_i:i] * w * LT).tolist()
-                    temp_result[j]['VLR'] = (XBox[2, last_i:i] * w * LS).tolist()
+                    temp_result[j]['IP'] = np.round(XBox[0, last_i:i], round_num).tolist()
+                    temp_result[j]['IT'] = np.round(XBox[1, last_i:i], round_num).tolist()
+                    temp_result[j]['IS'] = np.round(XBox[2, last_i:i], round_num).tolist()
+                    temp_result[j]['UCP'] = np.round(XBox[3, last_i:i], round_num).tolist()
+                    temp_result[j]['UCT'] = np.round(XBox[4, last_i:i], round_num).tolist()
+                    temp_result[j]['UCS'] = np.round(XBox[5, last_i:i], round_num).tolist()
+                    temp_result[j]['Ur'] = np.round(XBox[6, last_i:i], round_num).tolist()
+                    temp_result[j]['Uinv'] = np.round(XBox[7, last_i:i], round_num).tolist()
+                    temp_result[j]['Iout'] = np.round(XBox[8, last_i:i], round_num).tolist()
+                    temp_result[j]['Vout'] = np.round(XBox[9, last_i:i], round_num).tolist()
+                    temp_result[j]['Vlp'] = np.round(XBox[1, last_i:i] * w * LP, round_num).tolist()
+                    temp_result[j]['ICP'] = np.round(XBox[3, last_i:i] * w * CP, round_num).tolist()
+                    temp_result[j]['VLT'] = np.round(XBox[0, last_i:i] * w * LT, round_num).tolist()
+                    temp_result[j]['VLR'] = np.round(XBox[2, last_i:i] * w * LS, round_num).tolist()
 
                 stdout.write(dumps({
                     'type': 'process',
-                    'value': count_percent[count],
-                    'result': temp_result
+                    'value': count/all_sample,
+                    'result': temp_result,
+                    'time': time.time()
                 }))
 
                 # {
@@ -256,12 +261,15 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 #     }
                 #     'k': 10000
                 # }
-
                 stdout.flush()
-            elif (j * int(Inner_Time / TimeGap) + i) == (Loop * int(Inner_Time / TimeGap) -1):
-                temp_result = defaultdict(dict)
+                while input() != 'continue':
+                    continue
                 last_j = j
-                last_i = int(max(count_percent.keys()) - j * int(Inner_Time / TimeGap))
+                last_i = i
+                start_time = time.time()
+
+            elif count == (all_sample -1):
+                temp_result = defaultdict(dict)
                 temp_result[j]['IP'] = XBox[0, last_i:].tolist()
                 temp_result[j]['IT'] = XBox[1, last_i:].tolist()
                 temp_result[j]['IS'] = XBox[2, last_i:].tolist()
@@ -280,10 +288,15 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 stdout.write(dumps({
                     'type': 'process',
                     'value': 1,
-                    'result': temp_result
+                    'result': temp_result,
+                    'time': time.time()
                 }))
-
                 stdout.flush()
+                while input() != 'continue':
+                    continue
+                last_j = j
+                last_i = i
+                start_time = time.time()
 
         if output_dir:
             for feature in ['IP', 'IT', 'IS', 'UCP', 'UCT', 'UCS', 'Ur', 'Uinv', 'Iout', 'Vout']:
@@ -315,7 +328,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
         XBox = result['XBox']
         result_json = defaultdict(dict)
         for i in XBox.keys():
-            XBox_i = XBox[i]
+            XBox_i = np.round(XBox[i], round_num)
             result_json[i]['IP'] = XBox_i[0, :].tolist()
             result_json[i]['IT'] = XBox_i[1, :].tolist()
             result_json[i]['IS'] = XBox_i[2, :].tolist()

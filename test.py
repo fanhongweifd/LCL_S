@@ -1,4 +1,5 @@
 import json
+import time
 import numpy as np
 from json import loads, dumps
 from collections import defaultdict
@@ -16,11 +17,12 @@ if __name__ == '__main__':
     # param = loads(argv[1])
     # param['R_Index'] = np.array(open(param['R_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
     # param['M_Index'] = np.array(open(param['M_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
-    #
-    # stdout.write(dumps({
-    #     'type': 'program start'
-    # }))
-    # stdout.flush()
+
+    stdout.write(dumps({
+        'type': 'program start',
+        'time': time.time()
+    }))
+    stdout.flush()
 
 
     R_M = np.array(open('data/R.txt', 'r').readlines()[0].strip().split('\t')).astype(np.float64)
@@ -54,13 +56,15 @@ if __name__ == '__main__':
         'Cd': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(52.8103e-6)/(1-.365),
         'Cp': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(52.8103e-6*.365),
         'CS': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(68.2297e-6),
-        'Lt': 52.8103e-6*.365
+        'Lt': 52.8103e-6*.365,
+        'round_num': 2
     }
 
     xbox_k = LCL_S_model(**param)
 
     stdout.write(dumps({
-        'type': 'program end'
+        'type': 'program end',
+        'time': time.time()
     }))
     stdout.flush()
 
