@@ -22,7 +22,7 @@ from LCCL_S_Function import LCCL_S_Function
 
 
 
-def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt, round_num,
+def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt, round_num, Output_Interv,
                 Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='', output_dir='', output_json_path=''):
     '''
     :param Freq:            系统频率（Hz）
@@ -49,7 +49,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     :param R_Index:         负载数据
     :param M_Index:         互感数据
     :param N_fresh:         互感和负载更新频率
-
+    :param Output_Interv:   输出数据的时间间隔
+    :param round_num:       保留小数点位数
     :return:
     返回的结构是:
     {
@@ -63,7 +64,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
 
     # ------------------------------------------------------------------------
     # 其他参数生成
-    Output_Interv = 0.02       # 输出数据的时间间隔
+    # Output_Interv = 0.01       # 输出数据的时间间隔
+    run_time = 0               # 程序运行时长
     T = 1 / Freq               # 系统周期
     w = 2 * np.pi * Freq       # 角速度
     Inner_Time = Period / Freq # 内循环时长
@@ -197,6 +199,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             end_time = time.time()
             # if (count in count_percent) and (count != 0):
             if end_time - start_time > Output_Interv:
+                run_time += end_time - start_time
                 temp_result = defaultdict(dict)
                 if last_j != j:
                     if i != 0:
@@ -251,7 +254,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     'type': 'process',
                     'value': count/all_sample,
                     'result': temp_result,
-                    'time': time.time()
+                    'time': time.time(),
+                    'run_time': run_time
                 }))
 
                 # {
@@ -289,7 +293,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     'type': 'process',
                     'value': 1,
                     'result': temp_result,
-                    'time': time.time()
+                    'time': time.time(),
+                    'run_time': run_time
                 }))
                 stdout.flush()
                 while input() != 'continue':
