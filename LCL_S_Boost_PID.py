@@ -12,7 +12,6 @@ import time
 import json
 import pickle
 import numpy as np
-from tqdm import tqdm
 from json import loads, dumps
 from collections import defaultdict
 from sys import argv, stdout, stderr
@@ -22,8 +21,9 @@ from LCCL_S_Function import LCCL_S_Function
 
 
 
+
 def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt, round_num, Output_Interv,
-                Simulate_Time, R_Index, M_Index, N_fresh, resume=False, resume_path='', output_dir='', output_json_path=''):
+                Simulate_Time, R_Index, M_Index, N_fresh, NP_RMS, resume=False, resume_path='', output_dir='', output_json_path=''):
     '''
     :param Freq:            系统频率（Hz）
     :param Us:              直流电压(V)
@@ -79,6 +79,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     LT = Lt
     # CP      = 1/w/w/LT
     CP = Cp
+    NP_RMS = NP_RMS                # 用20周期数据计算一个有效值
+    t = np.arange(0, Simulate_Time, TimeGap)
 
     # 是否加载上次一循环的参数XBox 和 K
 
@@ -103,50 +105,45 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     last_i = 0
     last_j = 0
 
+    # LCL_S 参数
+    LCL_Param = [None] * 15
+    LCL_Param[0] = Freq
+    LCL_Param[1] = Us
+    LCL_Param[2] = M
+    LCL_Param[3] = R
+    LCL_Param[4] = alpha
+    LCL_Param[5] = LP
+    LCL_Param[6] = LS
+    LCL_Param[7] = Cf
+    LCL_Param[8] = RP
+    LCL_Param[9] = RT
+    LCL_Param[10] = RS
+    LCL_Param[11] = TimeGap
+    LCL_Param[12] = Cd
+    LCL_Param[13] = CP
+    LCL_Param[14] = CS
+
+    # Boost 参数
+    Boost_Param = [None] * 8
+    Boost_Param[0] = Lb
+    Boost_Param[1] = Cb
+    Boost_Param[2] = R
+    Boost_Param[3] = XBox[6, 0]
+    Boost_Param[4] = TimeGap
+    Boost_Param[5] = N_boost
+    Boost_Param[6] = Sample
+    Boost_Param[7] = D
+
+    # PID 参数
+    PID_Param = [None] * 5
+    PID_Param[0] = Kp
+    PID_Param[1] = Ki
+    PID_Param[2] = Kd
+    PID_Param[3] = Sample
+    PID_Param[4] = D
+    Err_in = np.zeros([1, 3])
+
     for j in range(Loop):
-        # 初始化参数
-        t = np.arange(Inner_Time * j, Inner_Time * (j+1), TimeGap)
-        if j > 0:
-            XBox[:, 0] = XBox[:, int(Inner_Time / TimeGap)-1]
-
-        # LCL_S 参数
-        LCL_Param = [None] * 15
-        LCL_Param[0] = Freq
-        LCL_Param[1] = Us
-        LCL_Param[2] = M
-        LCL_Param[3] = R
-        LCL_Param[4] = alpha
-        LCL_Param[5] = LP
-        LCL_Param[6] = LS
-        LCL_Param[7] = Cf
-        LCL_Param[8] = RP
-        LCL_Param[9] = RT
-        LCL_Param[10] = RS
-        LCL_Param[11] = TimeGap
-        LCL_Param[12] = Cd
-        LCL_Param[13] = CP
-        LCL_Param[14] = CS
-
-        # Boost 参数
-        Boost_Param = [None] * 8
-        Boost_Param[0] = Lb
-        Boost_Param[1] = Cb
-        Boost_Param[2] = R
-        Boost_Param[3] = XBox[6, 0]
-        Boost_Param[4] = TimeGap
-        Boost_Param[5] = N_boost
-        Boost_Param[6] = Sample
-        Boost_Param[7] = D
-
-        # PID 参数
-        PID_Param = [None] * 5
-        PID_Param[0] = Kp
-        PID_Param[1] = Ki
-        PID_Param[2] = Kd
-        PID_Param[3] = Sample
-        PID_Param[4] = D
-        Err_in = np.zeros([1, 3])
-
         # 循环迭代
         for i in range(int(Inner_Time / TimeGap)):
             # 索引M/R
@@ -161,37 +158,42 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 Boost_Param[2] = R
                 k = k + 1
             # 循环调用
-            if (i == 0) and (j == 0):
-                XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i], t, i)
-                XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
-                err_3 = 0
-                err_2 = 0
-                err_1 = Ref - XBox[9, i]
-            elif i == 0:
-                LCL_Param[3] = Req
-                XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i], t, i)
-                Boost_Param[3] = XBox[6, i]
-                Boost_Param[7] = D
-                XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
-                if (Inb == 0) and (j * Inner_Time / TimeGap + i > 50000):
-                    err_3 = err_2
-                    err_2 = err_1
+            if i == 0:
+                if j == 0:
+                    XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i], t, i)
+                    XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
+                    err_3 = 0
+                    err_2 = 0
                     err_1 = Ref - XBox[9, i]
-                    Err_in = [err_1, err_2, err_3]
-                    [D] = PID_Function(PID_Param, (j - 1) * Inner_Time / TimeGap + i, Err_in, Inb)
-                    PID_Param[4] = D
+                    if Inb == 0:
+                        Err_in = [err_1, err_2, err_3]
+                        [D] = PID_Function(PID_Param, i, Err_in, Inb)
+                        PID_Param[4] = D
+                else:
+                    LCL_Param[3] = Req
+                    XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], t, i)
+                    Boost_Param[3] = XBox[6, i]
+                    Boost_Param[7] = D
+                    XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, -1], i)
+                    if (Inb == 0) and (j * Inner_Time / TimeGap + i > 10000):
+                        err_3 = err_2
+                        err_2 = err_1
+                        err_1 = Ref - XBox[9, i]
+                        Err_in = [err_1, err_2, err_3]
+                        D = PID_Function(PID_Param, i, Err_in, Inb)
+                        PID_Param[4] = D
             else:
                 LCL_Param[3] = Req
                 XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], t, i)
                 Boost_Param[3] = XBox[6, i]
                 Boost_Param[7] = D
                 XBox[8:, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i - 1], i)
-                if (Inb == 0) and ( j * Inner_Time / TimeGap + i > 50000):
+                if (Inb == 0) and ( j * Inner_Time / TimeGap + i > 10000):
                     err_3 = err_2
                     err_2 = err_1
                     err_1 = Ref - XBox[9, i]
                     Err_in = [err_1, err_2, err_3]
-                    D = PID_Function(PID_Param, j * Inner_Time / TimeGap + i, Err_in, Inb)
+                    D = PID_Function(PID_Param, i, Err_in, Inb)
                     PID_Param[4] = D
 
             # 输出进度
@@ -250,6 +252,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     temp_result[j]['VLT'] = np.round(XBox[0, last_i:i] * w * LT, round_num).tolist()
                     temp_result[j]['VLR'] = np.round(XBox[2, last_i:i] * w * LS, round_num).tolist()
 
+
                 stdout.write(dumps({
                     'type': 'process',
                     'value': count/all_sample,
@@ -302,6 +305,28 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 last_j = j
                 last_i = i
                 start_time = time.time()
+
+
+            if (i+1) % (NP_RMS * Sample) == 0:
+                IP_RMS = np.sqrt(np.mean(XBox[0, (i - (NP_RMS * Sample) + 1):i] ** 2))
+                IS_RMS = np.sqrt(np.mean(XBox[2, (i - (NP_RMS * Sample) + 1):i] ** 2))
+                Ur_RMS = np.sqrt(np.mean(XBox[6, (i - (NP_RMS * Sample) + 1):i] ** 2))
+                Uinv_RMS = np.sqrt(np.mean(XBox[7, (i - (NP_RMS * Sample) + 1):i] ** 2))
+                Pin_RMS = IP_RMS * Uinv_RMS
+                Pout_RMS = IS_RMS * Ur_RMS * 0.9
+                eff_RMS = Pout_RMS / Pin_RMS
+                t_RMS = t[j*int(Inner_Time / TimeGap)+i]
+
+                stdout.write(dumps({
+                    'type': 'process',
+                    'Pin_RMS': Pin_RMS,
+                    'Pout_RMS': Pout_RMS,
+                    'eff_RMS': eff_RMS,
+                    't_RMS': t_RMS
+                }))
+                stdout.flush()
+
+
 
         if output_dir:
             for feature in ['IP', 'IT', 'IS', 'UCP', 'UCT', 'UCS', 'Ur', 'Uinv', 'Iout', 'Vout']:

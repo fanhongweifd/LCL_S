@@ -58,7 +58,8 @@ if __name__ == '__main__':
         'CS': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(68.2297e-6),
         'Lt': 52.8103e-6*.365,
         'round_num': 2,
-        'Output_Interv': 0.01
+        'Output_Interv': 0.1,
+        'NP_RMS': 20
     }
 
     xbox_k = LCL_S_model(**param)

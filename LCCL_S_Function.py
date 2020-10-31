@@ -64,9 +64,9 @@ def LCCL_S_Function(LCL_Param,LCL_Ini,t,Index):
     Inv = np.mod(np.fix(t[Index]/(1/Freq/2)), 2)
     if Inv == 1:
         X0 = np.matmul(Phi2, X0) + np.linalg.multi_dot((np.linalg.inv(A2), (Phi1 - np.eye(7)), B)).reshape(X0.shape) * Us
-        Uin = Us
+        Uin = -Us
     if Inv == 0:
         X0 = np.matmul(Phi1, X0) - np.linalg.multi_dot((np.linalg.inv(A1), (Phi1 - np.eye(7)), B)).reshape(X0.shape) * Us
-        Uin = -Us
+        Uin = Us
 
     return X0, Uin
