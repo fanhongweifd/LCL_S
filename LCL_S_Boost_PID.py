@@ -322,7 +322,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     'Pin_RMS': Pin_RMS,
                     'Pout_RMS': Pout_RMS,
                     'eff_RMS': eff_RMS,
-                    't_RMS': t_RMS
+                    't_RMS': t_RMS,
+                    'index': j * int(Inner_Time / TimeGap) + i + 1
                 }))
                 stdout.flush()
 
