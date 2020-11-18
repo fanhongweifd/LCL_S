@@ -28,7 +28,7 @@ def  Boost_Function(Boost_Param,Boost_Ini,Index):
     # 循环迭代
     Phi1 = expm(A1*TimeGap)
     X0 = Boost_Ini
-    Inb = np.mod(Index, N_boost*Sample)
+    Inb = np.mod(Index+1, N_boost*Sample)
     iL = X0[0]
 
     if Inb <= np.round(D*Sample*N_boost):

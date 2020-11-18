@@ -90,7 +90,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             XBox = param['XBox'][max(param['XBox'])]
             k = param['k']
     else:
-        XBox = np.zeros([14, int(Inner_Time / TimeGap)])
+        XBox = np.zeros([10, int(Inner_Time / TimeGap)])
         k = 0
 
     # ------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             # 索引M/R
             Inb = int(np.mod(j * Inner_Time / TimeGap + i + 1, N_PID * Sample))
             Inc = int(np.mod(j * Inner_Time / TimeGap + i + 1, N_fresh * Sample))
-            if Inc == 1:
+            if Inc == 0:
                 M = M_Index[k]
                 R = R_Index[k]
                 if R < 0:
@@ -161,7 +161,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             if i == 0:
                 if j == 0:
                     XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i], t, i)
-                    XBox[8: 10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
+                    XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
                     err_3 = 0
                     err_2 = 0
                     err_1 = Ref - XBox[9, i]
@@ -174,7 +174,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], t, i)
                     Boost_Param[3] = XBox[6, i]
                     Boost_Param[7] = D
-                    XBox[8: 10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, -1], i)
+                    XBox[8: , i], Req = Boost_Function(Boost_Param, XBox[8: 10, -1], i)
                     if (Inb == 0) and (j * Inner_Time / TimeGap + i > 10000):
                         err_3 = err_2
                         err_2 = err_1
@@ -187,7 +187,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], t, i)
                 Boost_Param[3] = XBox[6, i]
                 Boost_Param[7] = D
-                XBox[8:10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i - 1], i)
+                XBox[8:, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i - 1], i)
                 if (Inb == 0) and ( j * Inner_Time / TimeGap + i > 10000):
                     err_3 = err_2
                     err_2 = err_1
@@ -251,6 +251,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     temp_result[j]['ICP'] = np.round(XBox[3, last_i:i] * w * CP, round_num).tolist()
                     temp_result[j]['VLT'] = np.round(XBox[0, last_i:i] * w * LT, round_num).tolist()
                     temp_result[j]['VLR'] = np.round(XBox[2, last_i:i] * w * LS, round_num).tolist()
+
 
                 stdout.write(dumps({
                     'type': 'process',
@@ -326,11 +327,6 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 }))
                 stdout.flush()
 
-            XBox[10, i] = err_1
-            XBox[11, i] = err_2
-            XBox[12, i] = err_3
-            XBox[13, i] = D
-
 
 
         if output_dir:
@@ -374,10 +370,6 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             result_json[i]['Uinv'] = XBox_i[7, :].tolist()
             result_json[i]['Iout'] = XBox_i[8, :].tolist()
             result_json[i]['Vout'] = XBox_i[9, :].tolist()
-            result_json[i]['err_1'] = XBox_i[10, :].tolist()
-            result_json[i]['err_2'] = XBox_i[11, :].tolist()
-            result_json[i]['err_3'] = XBox_i[12, :].tolist()
-            result_json[i]['D'] = XBox_i[13, :].tolist()
 
         with open(output_json_path, 'w') as file_obj:
             json.dump(result_json, file_obj, indent=4)

@@ -16,7 +16,7 @@ def PID_Function(PID_Param,Index,Err_In,Inb):
 
     # ------------------------------------------------------------------------
     # 计算
-    if (Inb == 0) and (Index >= Sample*1000):
+    if (Inb == 0) and (Index +1 >= Sample*1000):
         err1    = Err_In[0]
         err2    = Err_In[1]
         err3    = Err_In[2]

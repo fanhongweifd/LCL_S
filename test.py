@@ -8,6 +8,7 @@ from LCL_S_Boost_PID import LCL_S_model
 
 
 if __name__ == '__main__':
+
     # if len(argv) <= 1:
     #     stderr.write(dumps({
     #         'type': 'input error'
@@ -18,11 +19,11 @@ if __name__ == '__main__':
     # param['R_Index'] = np.array(open(param['R_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
     # param['M_Index'] = np.array(open(param['M_Index'], 'r').readlines()[0].strip().split('\t')).astype(np.float64)
 
-    stdout.write(dumps({
-        'type': 'program start',
-        'time': time.time()
-    }))
-    stdout.flush()
+    # stdout.write(dumps({
+    #     'type': 'program start',
+    #     'time': time.time()
+    # }))
+    # stdout.flush()
 
 
     R_M = np.array(open('data/R.txt', 'r').readlines()[0].strip().split('\t')).astype(np.float64)
@@ -42,13 +43,13 @@ if __name__ == '__main__':
         'Lb': 1e-3,
         'Cb': 1e-4,
         'fb': 6e3,
-        'D': 0.00,
+        'D': 0.05,
         'Kp': 0.000005,
         'Ki': 0.000025,
         'Kd': 0,
-        'Ref': 650,
+        'Ref': 1200,
         'fp': 6e2,
-        'Simulate_Time': 0.2,
+        'Simulate_Time': 0.05,
         'R_Index': R_M,
         'M_Index': M_M,
         'N_fresh': 20,
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         'Cp': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(52.8103e-6*.365),
         'CS': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(68.2297e-6),
         'Lt': 52.8103e-6*.365,
-        'round_num': 2,
+        'round_num': 6,
         'Output_Interv': 0.1,
         'NP_RMS': 20
     }
