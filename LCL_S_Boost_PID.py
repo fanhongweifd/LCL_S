@@ -23,7 +23,7 @@ from LCCL_S_Function import LCCL_S_Function
 
 
 def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb, fb, D, Kp, Ki, Kd, Ref, fp, Cd, Cp, CS, Lt, round_num, Output_Interv,
-                Simulate_Time, R_Index, M_Index, N_fresh, NP_RMS, resume=False, resume_path='', output_dir='', output_json_path=''):
+                Tj, Simulate_Time, R_Index, M_Index, N_fresh, NP_RMS,  ReSample, resume=False, resume_path='', output_dir='', output_json_path='', flag=0):
     '''
     :param Freq:            系统频率（Hz）
     :param Us:              直流电压(V)
@@ -51,6 +51,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     :param N_fresh:         互感和负载更新频率
     :param Output_Interv:   输出数据的时间间隔
     :param round_num:       保留小数点位数
+    :param flag:            副边电流正负标志位
+    :param Tj:              二极管温度
+    :param ReSample:        保存文件的采样间隔
     :return:
     返回的结构是:
     {
@@ -75,10 +78,12 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     N_boost = Freq / fb
     N_PID = Freq / fp
     TimeGap = 1 / Freq / Sample
-    # LT      = LP*alpha
-    LT = Lt
-    # CP      = 1/w/w/LT
-    CP = Cp
+    LT      = LP*alpha
+    # LT = Lt
+    CP      = 1/w/w/LT
+    Cd      = 1/w/w/LP/(1-alpha)
+    Cs      = 1/w/w/LS
+    # CP = Cp
     NP_RMS = NP_RMS                # 用20周期数据计算一个有效值
     t = np.arange(0, Simulate_Time, TimeGap)
 
@@ -106,22 +111,31 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     last_j = 0
 
     # LCL_S 参数
-    LCL_Param = [None] * 15
-    LCL_Param[0] = Freq
-    LCL_Param[1] = Us
-    LCL_Param[2] = M
-    LCL_Param[3] = R
-    LCL_Param[4] = alpha
-    LCL_Param[5] = LP
-    LCL_Param[6] = LS
-    LCL_Param[7] = Cf
-    LCL_Param[8] = RP
-    LCL_Param[9] = RT
-    LCL_Param[10] = RS
-    LCL_Param[11] = TimeGap
-    LCL_Param[12] = Cd
-    LCL_Param[13] = CP
-    LCL_Param[14] = CS
+    LCL_Param = [None] * 19
+    LCL_Param[0]   = Freq
+    LCL_Param[1]   = Us
+    LCL_Param[2]   = M
+    LCL_Param[3]   = R
+    LCL_Param[4]   = LP
+    LCL_Param[5]   = LS
+    LCL_Param[6]   = Cf
+    LCL_Param[7]   = RP
+    LCL_Param[8]   = RT
+    LCL_Param[9]   = RS
+    LCL_Param[10]  = LT
+    LCL_Param[11]  = Cp
+    LCL_Param[12]  = Cd
+    LCL_Param[13]  = Cs
+    LCL_Param[14]  = TimeGap
+    LCL_Param[15]  = flag
+    LCL_Param[16]  = Tj
+    LCL_Param[17]  = 0
+    LCL_Param[18]  = 0
+
+    Param = [None] * 3
+    Param[0]       = 0
+    Param[1]       = 0
+    Param[2]       = 0
 
     # Boost 参数
     Boost_Param = [None] * 8
@@ -143,8 +157,15 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     PID_Param[4] = D
     Err_in = np.zeros([1, 3])
 
+    Phi_In      = np.zeros(14,7)
+    Matrix_In   = np.zeros(22,7)
+    Matrix_In[14,1] = 1/LT
+    Matrix_In[15:22,0:7] = np.eye(7)
+
     for j in range(Loop):
         # 循环迭代
+        # time = Inner_Time * (j - 1):TimeGap: Inner_Time * j
+        t = np.arange(Inner_Time*j, Inner_Time*(j+1), TimeGap)
         for i in range(int(Inner_Time / TimeGap)):
             # 索引M/R
             Inb = int(np.mod(j * Inner_Time / TimeGap + i + 1, N_PID * Sample))
@@ -152,46 +173,61 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             if Inc == 1:
                 M = M_Index[k]
                 R = R_Index[k]
-                if R < 0:
-                    R = 2e2
                 LCL_Param[2] = M
                 Boost_Param[2] = R
                 k = k + 1
             # 循环调用
             if i == 0:
                 if j == 0:
-                    XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i], t, i)
-                    XBox[8: 10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i], i)
+                    XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i], Phi_In, Matrix_In, t, i)
+                    LCL_Param[15]       = Param[0]
+                    LCL_Param[17]       = Param[1]
+                    LCL_Param[18]       = Param[2]
+                    Phi_In              = Phi_O
+                    Matrix_In[0:14,:]   = Matrix_O
+
+                    XBox[9: 11, i], Req = Boost_Function(Boost_Param, XBox[9: 11, i], i)
                     err_3 = 0
                     err_2 = 0
-                    err_1 = Ref - XBox[9, i]
+                    err_1 = Ref - XBox[10, i]
                     if Inb == 0:
                         Err_in = [err_1, err_2, err_3]
                         [D] = PID_Function(PID_Param, i, Err_in, Inb)
                         PID_Param[4] = D
                 else:
                     LCL_Param[3] = Req
-                    XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], t, i)
+                    XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], Phi_In, Matrix_In, t, i)
+                    LCL_Param[15]       = Param[0]
+                    LCL_Param[17]       = Param[1]
+                    LCL_Param[18]       = Param[2]
+                    Phi_In              = Phi_O
+                    Matrix_In[0:14,:]   = Matrix_O
+
                     Boost_Param[3] = XBox[6, i]
                     Boost_Param[7] = D
-                    XBox[8: 10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, -1], i)
-                    if (Inb == 0) and (j * Inner_Time / TimeGap + i > 10000):
+                    XBox[9: 11, i], Req = Boost_Function(Boost_Param, XBox[9: 11, -1], i)
+                    if (Inb == 0) and (j * Inner_Time / TimeGap + i + 1 > 10000):
                         err_3 = err_2
                         err_2 = err_1
-                        err_1 = Ref - XBox[9, i]
+                        err_1 = Ref - XBox[10, i]
                         Err_in = [err_1, err_2, err_3]
                         D = PID_Function(PID_Param, i, Err_in, Inb)
                         PID_Param[4] = D
             else:
                 LCL_Param[3] = Req
-                XBox[0: 7, i], XBox[7, i] = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], t, i)
+                XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], Phi_In, Matrix_In, t, i)
+                LCL_Param[15] = Param[0]
+                LCL_Param[17] = Param[1]
+                LCL_Param[18] = Param[2]
+                Phi_In = Phi_O
+                Matrix_In[0:14, :] = Matrix_O
                 Boost_Param[3] = XBox[6, i]
                 Boost_Param[7] = D
-                XBox[8:10, i], Req = Boost_Function(Boost_Param, XBox[8: 10, i - 1], i)
-                if (Inb == 0) and ( j * Inner_Time / TimeGap + i > 10000):
+                XBox[9:11, i], Req = Boost_Function(Boost_Param, XBox[9: 11, i - 1], i)
+                if (Inb == 0) and (j * Inner_Time / TimeGap + i + 1 > 10000):
                     err_3 = err_2
                     err_2 = err_1
-                    err_1 = Ref - XBox[9, i]
+                    err_1 = Ref - XBox[10, i]
                     Err_in = [err_1, err_2, err_3]
                     D = PID_Function(PID_Param, i, Err_in, Inb)
                     PID_Param[4] = D
@@ -214,8 +250,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                         temp_result[j]['UCS'] = np.round(XBox[5, :i], round_num).tolist()
                         temp_result[j]['Ur'] = np.round(XBox[6, :i], round_num).tolist()
                         temp_result[j]['Uinv'] = np.round(XBox[7, :i], round_num).tolist()
-                        temp_result[j]['Iout'] = np.round(XBox[8, :i], round_num).tolist()
-                        temp_result[j]['Vout'] = np.round(XBox[9, :i], round_num).tolist()
+                        temp_result[j]['Urec'] = np.round(XBox[8, :i], round_num).tolist()
+                        temp_result[j]['Iout'] = np.round(XBox[9, :i], round_num).tolist()
+                        temp_result[j]['Vout'] = np.round(XBox[10, :i], round_num).tolist()
                         temp_result[j]['Vlp'] = np.round(XBox[1, :i] * w * LP, round_num).tolist()
                         temp_result[j]['ICP'] = np.round(XBox[3, :i] * w * CP, round_num).tolist()
                         temp_result[j]['VLT'] = np.round(XBox[0, :i] * w * LT, round_num).tolist()
@@ -229,8 +266,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     temp_result[last_j]['UCS'] = np.round(result['XBox'][last_j][5, last_i:], round_num).tolist()
                     temp_result[last_j]['Ur'] = np.round(result['XBox'][last_j][6, last_i:], round_num).tolist()
                     temp_result[last_j]['Uinv'] = np.round(result['XBox'][last_j][7, last_i:], round_num).tolist()
-                    temp_result[last_j]['Iout'] = np.round(result['XBox'][last_j][8, last_i:], round_num).tolist()
-                    temp_result[last_j]['Vout'] = np.round(result['XBox'][last_j][9, last_i:], round_num).tolist()
+                    temp_result[last_j]['Urec'] = np.round(result['XBox'][last_j][8, last_i:], round_num).tolist()
+                    temp_result[last_j]['Iout'] = np.round(result['XBox'][last_j][9, last_i:], round_num).tolist()
+                    temp_result[last_j]['Vout'] = np.round(result['XBox'][last_j][10, last_i:], round_num).tolist()
                     temp_result[last_j]['Vlp'] = np.round(result['XBox'][last_j][1, last_i:] * w * LP, round_num).tolist()
                     temp_result[last_j]['ICP'] = np.round(result['XBox'][last_j][3, last_i:] * w * CP, round_num).tolist()
                     temp_result[last_j]['VLT'] = np.round(result['XBox'][last_j][0, last_i:] * w * LT, round_num).tolist()
@@ -245,31 +283,32 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     temp_result[j]['UCS'] = np.round(XBox[5, last_i:i], round_num).tolist()
                     temp_result[j]['Ur'] = np.round(XBox[6, last_i:i], round_num).tolist()
                     temp_result[j]['Uinv'] = np.round(XBox[7, last_i:i], round_num).tolist()
-                    temp_result[j]['Iout'] = np.round(XBox[8, last_i:i], round_num).tolist()
-                    temp_result[j]['Vout'] = np.round(XBox[9, last_i:i], round_num).tolist()
+                    temp_result[j]['Urec'] = np.round(XBox[8, last_i:i], round_num).tolist()
+                    temp_result[j]['Iout'] = np.round(XBox[9, last_i:i], round_num).tolist()
+                    temp_result[j]['Vout'] = np.round(XBox[10, last_i:i], round_num).tolist()
                     temp_result[j]['Vlp'] = np.round(XBox[1, last_i:i] * w * LP, round_num).tolist()
                     temp_result[j]['ICP'] = np.round(XBox[3, last_i:i] * w * CP, round_num).tolist()
                     temp_result[j]['VLT'] = np.round(XBox[0, last_i:i] * w * LT, round_num).tolist()
                     temp_result[j]['VLR'] = np.round(XBox[2, last_i:i] * w * LS, round_num).tolist()
 
-                stdout.write(dumps({
-                    'type': 'process',
-                    'value': count/all_sample,
-                    'result': temp_result,
-                    'time': time.time(),
-                    'run_time': run_time
-                }))
-
-                # {
-                #     'XBox': {
-                #         0: ...
-                #         1: ...
-                #     }
-                #     'k': 10000
-                # }
-                stdout.flush()
-                while input() != 'continue':
-                    continue
+                # stdout.write(dumps({
+                #     'type': 'process',
+                #     'value': count/all_sample,
+                #     'result': temp_result,
+                #     'time': time.time(),
+                #     'run_time': run_time
+                # }))
+                #
+                # # {
+                # #     'XBox': {
+                # #         0: ...
+                # #         1: ...
+                # #     }
+                # #     'k': 10000
+                # # }
+                # stdout.flush()
+                #while input() != 'continue':
+                #    continue
                 last_j = j
                 last_i = i
                 start_time = time.time()
@@ -284,23 +323,23 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 temp_result[j]['UCS'] = np.round(XBox[5, last_i:], round_num).tolist()
                 temp_result[j]['Ur'] = np.round(XBox[6, last_i:], round_num).tolist()
                 temp_result[j]['Uinv'] = np.round(XBox[7, last_i:], round_num).tolist()
-                temp_result[j]['Iout'] = np.round(XBox[8, last_i:], round_num).tolist()
-                temp_result[j]['Vout'] = np.round(XBox[9, last_i:], round_num).tolist()
+                temp_result[j]['Urec'] = np.round(XBox[8, last_i:i], round_num).tolist()
+                temp_result[j]['Iout'] = np.round(XBox[9, last_i:], round_num).tolist()
+                temp_result[j]['Vout'] = np.round(XBox[10, last_i:], round_num).tolist()
                 temp_result[j]['Vlp'] = np.round(XBox[1, last_i:] * w * LP, round_num).tolist()
                 temp_result[j]['ICP'] = np.round(XBox[3, last_i:] * w * CP, round_num).tolist()
                 temp_result[j]['VLT'] = np.round(XBox[0, last_i:] * w * LT, round_num).tolist()
                 temp_result[j]['VLR'] = np.round(XBox[2, last_i:] * w * LS, round_num).tolist()
 
-                stdout.write(dumps({
-                    'type': 'process',
-                    'value': 1,
-                    'result': temp_result,
-                    'time': time.time(),
-                    'run_time': run_time
-                }))
-                stdout.flush()
-                while input() != 'continue':
-                    continue
+                # stdout.write(dumps({
+                #     'type': 'process',
+                #     'value': 1,
+                #     'result': temp_result,
+                #     'time': time.time(),
+                #     'run_time': run_time
+                # }))
+                # stdout.flush()
+
                 last_j = j
                 last_i = i
                 start_time = time.time()
@@ -323,14 +362,13 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     'eff_RMS': eff_RMS,
                     't_RMS': t_RMS,
                     'index': j * int(Inner_Time / TimeGap) + i + 1
-                }))
+                })+'\n')
                 stdout.flush()
 
-            XBox[10, i] = err_1
-            XBox[11, i] = err_2
-            XBox[12, i] = err_3
-            XBox[13, i] = D
-
+            XBox[11, i] = err_1
+            XBox[12, i] = err_2
+            XBox[13, i] = err_3
+            XBox[14, i] = D
 
 
         if output_dir:
@@ -340,17 +378,19 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     f.write('\t'.join(data_row.astype('str').tolist()))
 
         result['XBox'][j] = XBox.copy()
+        if  ReSample>1:
+            result['XBox'][j] = result['XBox'][j][:, 0::ReSample]
 
-        IP = XBox[0, :]
-        IT = XBox[1, :]
-        IS = XBox[2, :]
-        UCP = XBox[3, :]
-        UCT = XBox[4, :]
-        UCS = XBox[5, :]
-        Ur = XBox[6, :]
-        Uinv = XBox[7, :]
-        Iout = XBox[8, :]
-        Vout = XBox[9, :]
+        # IP = XBox[0, :]
+        # IT = XBox[1, :]
+        # IS = XBox[2, :]
+        # UCP = XBox[3, :]
+        # UCT = XBox[4, :]
+        # UCS = XBox[5, :]
+        # Ur = XBox[6, :]
+        # Uinv = XBox[7, :]
+        # Iout = XBox[8, :]
+        # Vout = XBox[9, :]
 
         # print('k={}, j={}, sum(Xbox)={}'.format(k, j, sum(sum(XBox))))
 
@@ -372,12 +412,13 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             result_json[i]['UCS'] = XBox_i[5, :].tolist()
             result_json[i]['Ur'] = XBox_i[6, :].tolist()
             result_json[i]['Uinv'] = XBox_i[7, :].tolist()
-            result_json[i]['Iout'] = XBox_i[8, :].tolist()
-            result_json[i]['Vout'] = XBox_i[9, :].tolist()
-            result_json[i]['err_1'] = XBox_i[10, :].tolist()
-            result_json[i]['err_2'] = XBox_i[11, :].tolist()
-            result_json[i]['err_3'] = XBox_i[12, :].tolist()
-            result_json[i]['D'] = XBox_i[13, :].tolist()
+            result_json[i]['Urec'] = XBox_i[8, :].tolist()
+            result_json[i]['Iout'] = XBox_i[9, :].tolist()
+            result_json[i]['Vout'] = XBox_i[10, :].tolist()
+            result_json[i]['err_1'] = XBox_i[11, :].tolist()
+            result_json[i]['err_2'] = XBox_i[12, :].tolist()
+            result_json[i]['err_3'] = XBox_i[13, :].tolist()
+            result_json[i]['D'] = XBox_i[14, :].tolist()
 
         with open(output_json_path, 'w') as file_obj:
             json.dump(result_json, file_obj, indent=4)
