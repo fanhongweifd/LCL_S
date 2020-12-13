@@ -85,7 +85,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     Cs      = 1/w/w/LS
     # CP = Cp
     NP_RMS = NP_RMS                # 用20周期数据计算一个有效值
-    t = np.arange(0, Simulate_Time, TimeGap)
+    t_all_index = np.arange(0, Simulate_Time, TimeGap)
 
     # 是否加载上次一循环的参数XBox 和 K
 
@@ -95,7 +95,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             XBox = param['XBox'][max(param['XBox'])]
             k = param['k']
     else:
-        XBox = np.zeros([14, int(Inner_Time / TimeGap)])
+        XBox = np.zeros([15, int(Inner_Time / TimeGap)])
         k = 0
 
     # ------------------------------------------------------------------------
@@ -157,9 +157,9 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     PID_Param[4] = D
     Err_in = np.zeros([1, 3])
 
-    Phi_In      = np.zeros(14,7)
-    Matrix_In   = np.zeros(22,7)
-    Matrix_In[14,1] = 1/LT
+    Phi_In      = np.zeros((14,7))
+    Matrix_In   = np.zeros((22,7))
+    Matrix_In[14,0] = 1/LT
     Matrix_In[15:22,0:7] = np.eye(7)
 
     for j in range(Loop):
@@ -179,7 +179,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
             # 循环调用
             if i == 0:
                 if j == 0:
-                    XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i], Phi_In, Matrix_In, t, i)
+                    XBox[0: 7, i], XBox[7:9, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i], Phi_In, Matrix_In, t, i)
                     LCL_Param[15]       = Param[0]
                     LCL_Param[17]       = Param[1]
                     LCL_Param[18]       = Param[2]
@@ -196,7 +196,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                         PID_Param[4] = D
                 else:
                     LCL_Param[3] = Req
-                    XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], Phi_In, Matrix_In, t, i)
+                    XBox[0: 7, i], XBox[7:9, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, -1], Phi_In, Matrix_In, t, i)
                     LCL_Param[15]       = Param[0]
                     LCL_Param[17]       = Param[1]
                     LCL_Param[18]       = Param[2]
@@ -215,7 +215,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                         PID_Param[4] = D
             else:
                 LCL_Param[3] = Req
-                XBox[0: 7, i], XBox[7, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], Phi_In, Matrix_In, t, i)
+                XBox[0: 7, i], XBox[7:9, i], Phi_O, Matrix_O, Param = LCCL_S_Function(LCL_Param, XBox[0: 7, i - 1], Phi_In, Matrix_In, t, i)
                 LCL_Param[15] = Param[0]
                 LCL_Param[17] = Param[1]
                 LCL_Param[18] = Param[2]
@@ -344,16 +344,17 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 last_i = i
                 start_time = time.time()
 
-
+            if i == 100000:
+                hehe = 1
             if (i+1) % (NP_RMS * Sample) == 0:
-                IP_RMS = np.sqrt(np.mean(XBox[0, (i - (NP_RMS * Sample) + 1):i] ** 2))
-                IS_RMS = np.sqrt(np.mean(XBox[2, (i - (NP_RMS * Sample) + 1):i] ** 2))
-                Ur_RMS = np.sqrt(np.mean(XBox[6, (i - (NP_RMS * Sample) + 1):i] ** 2))
-                Uinv_RMS = np.sqrt(np.mean(XBox[7, (i - (NP_RMS * Sample) + 1):i] ** 2))
+                IP_RMS = np.sqrt(np.mean(XBox[0, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
+                IS_RMS = np.sqrt(np.mean(XBox[2, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
+                Ur_RMS = np.sqrt(np.mean(XBox[6, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
+                Uinv_RMS = np.sqrt(np.mean(XBox[7, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
                 Pin_RMS = IP_RMS * Uinv_RMS
                 Pout_RMS = IS_RMS * Ur_RMS * 0.9
                 eff_RMS = Pout_RMS / Pin_RMS
-                t_RMS = t[j*int(Inner_Time / TimeGap)+i]
+                t_RMS = t_all_index[j*int(Inner_Time / TimeGap)+i]
 
                 stdout.write(dumps({
                     'type': 'process',
@@ -378,8 +379,8 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     f.write('\t'.join(data_row.astype('str').tolist()))
 
         result['XBox'][j] = XBox.copy()
-        if  ReSample>1:
-            result['XBox'][j] = result['XBox'][j][:, 0::ReSample]
+        if  ReSample>0:
+            result['XBox'][j] = result['XBox'][j][:, 0::int(Sample/ReSample)]
 
         # IP = XBox[0, :]
         # IT = XBox[1, :]

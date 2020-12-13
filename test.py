@@ -38,7 +38,7 @@ if __name__ == '__main__':
         'RP': 0.03,
         'RT': 0.06,
         'RS': 0.06,
-        'Sample': 120,
+        'Sample': 600,
         'Period': 3e3,
         'Lb': 1e-3,
         'Cb': 1e-4,
@@ -58,9 +58,12 @@ if __name__ == '__main__':
         'Cp': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(52.8103e-6*.365),
         'CS': 1/(2 * np.pi * 60e3)/(2 * np.pi * 60e3)/(68.2297e-6),
         'Lt': 52.8103e-6*.365,
-        'round_num': 6,
-        'Output_Interv': 0.1,
-        'NP_RMS': 20
+        'round_num': 10,
+        'Output_Interv': 0.05,
+        'NP_RMS': 20,
+        'flag': 0,
+        'Tj': 50,
+        'ReSample': 600
     }
 
     xbox_k = LCL_S_model(**param)

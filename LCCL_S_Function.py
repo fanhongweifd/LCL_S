@@ -103,7 +103,7 @@ def LCCL_S_Function(LCL_Param, LCL_Ini, Phi_In, Matrix_In, t, Index):
     #     X0 = np.matmul(Phi1, X0) - np.linalg.multi_dot((np.linalg.inv(A1), (Phi1 - np.eye(7)), B)).reshape(X0.shape) * Us
     #     Uin = Us
 
-    U_Square = np.array([0, 0])
+    U_Square = np.array([0.0, 0.0])
 
     if Inv == 1 and flag == 1:
         # X0 = Phi1 * X0 + (A1 ^ (-1)) * (Phi1 - eye) * B * Us;
@@ -114,38 +114,39 @@ def LCCL_S_Function(LCL_Param, LCL_Ini, Phi_In, Matrix_In, t, Index):
 
     if Inv == 1 and flag == 0:
         # X0 = Phi2 * X0 + (A2 ^ (-1)) * (Phi1 - eye) * B * Us;
-        X0 = np.matmul(Phi2, X0) + np.linalg.multi_dot((np.linalg.inv(A1), (Phi1 - eye), B)).reshape(
+        X0 = np.matmul(Phi2, X0) + np.linalg.multi_dot((np.linalg.inv(A2), (Phi1 - eye), B)).reshape(
              X0.shape) * Us
         U_Square[0] = Us
         U_Square[1] = -X0[6]
 
     if Inv == 0 and flag == 1:
         # X0 = Phi1 * X0 - (A1 ^ (-1)) * (Phi1 - eye) * B * Us
-        X0 = np.matmul(Phi1, X0) + np.linalg.multi_dot((np.linalg.inv(A1), (Phi1 - eye), B)).reshape(
+        X0 = np.matmul(Phi1, X0) - np.linalg.multi_dot((np.linalg.inv(A1), (Phi1 - eye), B)).reshape(
              X0.shape) * Us
         U_Square[0] = -Us
         U_Square[1] = X0[6]
 
     if Inv == 0 and flag == 0:
         # X0 = Phi2 * X0 - (A2 ^ (-1)) * (Phi1 - eye) * B * Us
-        X0 = np.matmul(Phi2, X0) + np.linalg.multi_dot((np.linalg.inv(A2), (Phi1 - eye), B)).reshape(
+        X0 = np.matmul(Phi2, X0) - np.linalg.multi_dot((np.linalg.inv(A2), (Phi1 - eye), B)).reshape(
              X0.shape) * Us
         U_Square[0] = -Us
         U_Square[1] = -X0[6]
+
 
     if X0[2] * (0.23 + Tj * 2.71e-4) + (0.97 + Tj * (-1.4e-3)) > 1.5:
         flag = 1
     elif X0[2] <= -200e-6:
         flag = 0
 
-    Param_O = np.array([0, 0, 0])
+    Param_O = np.array([0.0, 0.0, 0.0])
     Param_O[0]         = flag
     Param_O[1]         = M
     Param_O[2]         = R
-    Phi_O = np.zeros(14, 7)
+    Phi_O = np.zeros((14, 7))
     Phi_O[0:7, 0:7]    = Phi1
     Phi_O[7:14,0:7]    = Phi2
-    Matrix_O = np.zeros(14, 7)
+    Matrix_O = np.zeros((14, 7))
     Matrix_O[0:7, 0:7] = A1
     Matrix_O[7:14,0:7] = A2
 
