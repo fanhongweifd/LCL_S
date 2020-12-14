@@ -78,12 +78,13 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     N_boost = Freq / fb
     N_PID = Freq / fp
     TimeGap = 1 / Freq / Sample
-    LT      = LP*alpha
-    # LT = Lt
+    # LT      = LP*alpha
+    LT = Lt
     CP      = 1/w/w/LT
-    Cd      = 1/w/w/LP/(1-alpha)
-    Cs      = 1/w/w/LS
+    # Cd      = 1/w/w/LP/(1-alpha)
+    # Cs      = 1/w/w/LS
     # CP = Cp
+    Cs = CS
     NP_RMS = NP_RMS                # 用20周期数据计算一个有效值
     t_all_index = np.arange(0, Simulate_Time, TimeGap)
 
@@ -291,24 +292,24 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     temp_result[j]['VLT'] = np.round(XBox[0, last_i:i] * w * LT, round_num).tolist()
                     temp_result[j]['VLR'] = np.round(XBox[2, last_i:i] * w * LS, round_num).tolist()
 
-                # stdout.write(dumps({
-                #     'type': 'process',
-                #     'value': count/all_sample,
-                #     'result': temp_result,
-                #     'time': time.time(),
-                #     'run_time': run_time
-                # }))
-                #
-                # # {
-                # #     'XBox': {
-                # #         0: ...
-                # #         1: ...
-                # #     }
-                # #     'k': 10000
-                # # }
-                # stdout.flush()
-                #while input() != 'continue':
-                #    continue
+                stdout.write(dumps({
+                    'type': 'process',
+                    'value': count/all_sample,
+                    'result': temp_result,
+                    'time': time.time(),
+                    'run_time': run_time
+                }))
+
+                # {
+                #     'XBox': {
+                #         0: ...
+                #         1: ...
+                #     }
+                #     'k': 10000
+                # }
+                stdout.flush()
+                while input() != 'continue':
+                   continue
                 last_j = j
                 last_i = i
                 start_time = time.time()
@@ -331,21 +332,19 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 temp_result[j]['VLT'] = np.round(XBox[0, last_i:] * w * LT, round_num).tolist()
                 temp_result[j]['VLR'] = np.round(XBox[2, last_i:] * w * LS, round_num).tolist()
 
-                # stdout.write(dumps({
-                #     'type': 'process',
-                #     'value': 1,
-                #     'result': temp_result,
-                #     'time': time.time(),
-                #     'run_time': run_time
-                # }))
-                # stdout.flush()
+                stdout.write(dumps({
+                    'type': 'process',
+                    'value': 1,
+                    'result': temp_result,
+                    'time': time.time(),
+                    'run_time': run_time
+                }))
+                stdout.flush()
 
                 last_j = j
                 last_i = i
                 start_time = time.time()
 
-            if i == 100000:
-                hehe = 1
             if (i+1) % (NP_RMS * Sample) == 0:
                 IP_RMS = np.sqrt(np.mean(XBox[0, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
                 IS_RMS = np.sqrt(np.mean(XBox[2, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
@@ -363,14 +362,14 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     'eff_RMS': eff_RMS,
                     't_RMS': t_RMS,
                     'index': j * int(Inner_Time / TimeGap) + i + 1
-                })+'\n')
+                }))
+                # })+'\n')
                 stdout.flush()
 
             XBox[11, i] = err_1
             XBox[12, i] = err_2
             XBox[13, i] = err_3
             XBox[14, i] = D
-
 
         if output_dir:
             for feature in ['IP', 'IT', 'IS', 'UCP', 'UCT', 'UCS', 'Ur', 'Uinv', 'Iout', 'Vout']:
