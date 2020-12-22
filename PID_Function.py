@@ -16,15 +16,15 @@ def PID_Function(PID_Param,Index,Err_In,Inb):
 
     # ------------------------------------------------------------------------
     # 计算
-    if (Inb == 0) and (Index +1 >= Sample*1000):
+    if Inb == 0:
         err1    = Err_In[0]
         err2    = Err_In[1]
         err3    = Err_In[2]
         Delta_u = Kp*(err1-err2)+Ki*err1+Kd*(err1-2*err2+err3)
         D       = D + Delta_u
 
-        if D >= 0.5:
-            D = 0.5
+        if D >= 0.8:
+            D = 0.8
         elif D <= 0:
             D = 0
 

@@ -207,7 +207,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                     Boost_Param[3] = XBox[6, i]
                     Boost_Param[7] = D
                     XBox[9: 11, i], Req = Boost_Function(Boost_Param, XBox[9: 11, -1], i)
-                    if (Inb == 0) and (j * Inner_Time / TimeGap + i + 1 > 10000):
+                    if Inb == 0:
                         err_3 = err_2
                         err_2 = err_1
                         err_1 = Ref - XBox[10, i]
@@ -225,7 +225,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 Boost_Param[3] = XBox[6, i]
                 Boost_Param[7] = D
                 XBox[9:11, i], Req = Boost_Function(Boost_Param, XBox[9: 11, i - 1], i)
-                if (Inb == 0) and (j * Inner_Time / TimeGap + i + 1 > 10000):
+                if Inb == 0:
                     err_3 = err_2
                     err_2 = err_1
                     err_1 = Ref - XBox[10, i]
@@ -350,7 +350,7 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
                 IS_RMS = np.sqrt(np.mean(XBox[2, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
                 Ur_RMS = np.sqrt(np.mean(XBox[6, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
                 Uinv_RMS = np.sqrt(np.mean(XBox[7, (i - (NP_RMS * Sample) + 1):i:int(Sample/ReSample)] ** 2))
-                Pin_RMS = IP_RMS * Uinv_RMS
+                Pin_RMS = IP_RMS * Uinv_RMS * 0.9
                 Pout_RMS = IS_RMS * Ur_RMS * 0.9
                 eff_RMS = Pout_RMS / Pin_RMS
                 t_RMS = t_all_index[j*int(Inner_Time / TimeGap)+i]
