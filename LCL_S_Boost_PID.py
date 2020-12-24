@@ -68,8 +68,10 @@ def LCL_S_model(Freq, Us, alpha, LP, LS, Cf, RP, RT, RS, Sample, Period, Lb, Cb,
     # ------------------------------------------------------------------------
     # 其他参数生成
     # Output_Interv = 0.01       # 输出数据的时间间隔
+
     run_time = 0               # 程序运行时长
     T = 1 / Freq               # 系统周期
+    Simulate_Time = (len(M_Index) - 1) * N_fresh * T
     w = 2 * np.pi * Freq       # 角速度
     Inner_Time = Period / Freq # 内循环时长
     M = M_Index[0]          # 互感
